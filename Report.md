@@ -379,8 +379,80 @@
   ```
 
 ### 2.4 前端实现
-
-
+前端采用bootstrap模板来完成界面布局，采用vue框架来完成数据处理及与服务端的交互功能。
++ 用bootstrap的卡片来展示个人资料，所需数据由vue框架处理：
+    ```html
+    <div class="m-auto col-4 card">
+        <div class="card-body">
+            <h4 align='center'>个人资料</h4>
+            <h5>账户地址: {{ nameToAdd[userName] }}</h5>
+            <h5>账户余额: {{ cur_account.amount }}</h5>
+            <h5>支票总额: {{ cur_account.receipt }}</h5>
+            <h5>欠款总额: {{ cur_account.debt }}</h5>
+        </div>
+    </div>
+    ```
++ 用表单提交的方式完成金额和交易对象的选择和处理：
+    ```html
+    <h5 align='center'>融资借贷</h5>
+    <div class="btn btn-info btn-sm dropdown-toggle" type="button" id="useToChanger"
+        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        目标机构：{{ useTo }}
+    </div>
+    <div class="dropdown-menu" aria-labelledby="useToChanger">
+        <button class="dropdown-item" @click="changeUseTo('car')">car</button>
+        <button class="dropdown-item" @click="changeUseTo('bank')">bank</button>
+        <button class="dropdown-item" @click="changeUseTo('tyre')">tyre</button>
+        <button class="dropdown-item" @click="changeUseTo('hub')">hub</button>
+    </div>
+    <form>
+        <div class="input-group mt-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text">金额</span>
+            </div>
+            <input type="text" class="form-control" v-model="useAmount">
+        </div>
+        <center><button align='center' type="button" class="btn btn-success mt-3"
+                @click="useReceipt()">确定</button></center>
+    </form>
+    ```
++ 利用异步的网络请求，实现与后端的交互。即通过json格式传输需要调用的合约函数和参数，并从服务端调用智能合约之后得到返回值：
+    ```js
+    async function contractMethod(account, method, parameters) {
+        let res = await axios.post('/contractMethod', {
+            account: account,
+            method: method,
+            parameters: parameters,
+        });
+        if (res.data && res.data.ok) {
+            return res.data.data;
+        } else {
+            console.log(JSON.stringify(res.data ? res.data.msg : res));
+        }
+    }
+    ```
++ 利用vue框架实现数据和方法的管理：
+    ```js
+    async buy() {//生成账单
+        if (this.buyFrom == "") {
+            alert("收款企业不存在！");
+        }
+        else {
+            let result = await contractMethod(this.userName, 'createReceipt', [this.nameToAdd[this.buyFrom], this.buyAmount]);
+            if (result == 'true') {
+                alert("账单生成成功！");
+                await this.refresh();
+                this.changeUser(this.userName);
+            }
+            else {
+                alert("账单生成失败！");
+            }
+        }
+        this.buyFrom = '';
+        this.buyAmount = 0;
+        refresh();
+    },
+    ```
 
 ### 2.5后端实现
 
@@ -531,20 +603,31 @@
   ```
 
 ## 三、功能测试
+在这里可以查看个人支票和欠款信息，并能查询自己的余额等信息：    
+![](image/a0.png)  
 
 ### 3.1 功能一
+实现采购商品—签发应收账款交易上链。这里可以直接选择收款企业，然后输入交易金额。若交易金额不足，则会弹出错误提示。  
+![](image/a1.png)
 
 ### 3.2 功能二
+实现应收账款的转让上链，轮胎公司从轮毂公司购买一笔轮毂，便将于车企的应收账款单据部分转让给轮毂公司。轮毂公司可以利用这个新的单据去融资或者要求车企到期时归还钱款。  
+![](image/a2.png)
 
 ### 3.3 功能三
+利用应收账款向银行融资上链，供应链上所有可以利用应收账款单据向银行申请融资。  
+注意，如果申请融资，则会将其他企业欠款的记录也会被算入该企业的资产中。融资的对象必须是金融机构。  
+![](image/a3.png)
 
 ### 3.4 功能四
+应收账款支付结算上链，应收账款单据到期时核心企业向下游企业支付相应的欠款。如果当前企业资金不够还款，则不能结算欠款。  
+![](image/a4.png)
 
 ## 四、界面展示
 
 界面截图如下：
 
-![](../../../supplychain/实验报告/pic.png)
+![](image/pic.png)
 
 具体请见演示视频
 
